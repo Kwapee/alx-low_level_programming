@@ -1,70 +1,95 @@
 #include "main.h"
 
-int check_path(char *S1, char *s2);
-char *move_char(char *s2);
+int strlen_no_wilds(char *str);
+void iterate_wild(char **wildstr);
+char *postfix_match(char *str, char *postfix);
+int wildcmp(char *s1, char *s2);
 
 /**
- * wildcmp - compares 2 strings
- * @s1: string to be compared
- * @s2: string to be compared
+ * strlen_no_wilds - Returns the length of a string,
+ *                   ignoring wildcard characters.
+ * @str: The string to be measured.
  *
- * Return: returns numeral value
+ * Return: The length.
+ */
+int strlen_no_wilds(char *str)
+{
+	int len = 0, index = 0;
+
+	if (*(str + index))
+	{
+		if (*str != '*')
+			len++;
+
+		index++;
+		len += strlen_no_wilds(str + index);
+	}
+
+	return (len);
+}
+
+/**
+ * iterate_wild - Iterates through a string located at a wildcard
+ *                until it points to a non-wildcard character.
+ * @wildstr: The string to be iterated through.
+ */
+void iterate_wild(char **wildstr)
+{
+	if (**wildstr == '*')
+	{
+		(*wildstr)++;
+		iterate_wild(wildstr);
+	}
+}
+
+/**
+ * postfix_match - Checks if a string str matches the postfix of
+ *                 another string potentially containing wildcards.
+ * @str: The string to be matched.
+ * @postfix: The postfix.
+ *
+ * Return: If str and postfix are identical - a pointer to the null byte
+ *                                            located at the end of postfix.
+ *         Otherwise - a pointer to the first unmatched character in postfix.
+ */
+char *postfix_match(char *str, char *postfix)
+{
+	int str_len = strlen_no_wilds(str) - 1;
+	int postfix_len = strlen_no_wilds(postfix) - 1;
+
+	if (*postfix == '*')
+		iterate_wild(&postfix);
+
+	if (*(str + str_len - postfix_len) == *postfix && *postfix != '\0')
+	{
+		postfix++;
+		return (postfix_match(str, postfix));
+	}
+
+	return (postfix);
+}
+
+/**
+ * wildcmp - Compares two strings, considering wildcard characters.
+ * @s1: The first string to be compared.
+ * @s2: The second string to be compared - may contain wildcards.
+ *
+ * Return: If the strings can be considered identical - 1.
+ *         Otherwise - 0.
  */
 int wildcmp(char *s1, char *s2)
 {
-	int i = 0;
+	if (*s2 == '*')
+	{
+		iterate_wild(&s2);
+		s2 = postfix_match(s1, s2);
+	}
 
-	if (*s1 == '\0' && *s2 == '*' && !*move_char(s2))
+	if (*s2 == '\0')
 		return (1);
-	if (*s1 == *s2)
-	{
-		if (*s1 == '\0')
-			return (1);
-	return (wildcmp(s1 + 1, s2 + 1));
-	}
-	if (*s1 == '\0' || *s2 == '\0')
+
+	if (*s1 != *s2)
 		return (0);
-	if (*s2 == '*')
-	{
-		s2 = move_char(s2);
-		if (*s2 == '\0')
-			return (1);
-		if (*s1 == *s2)
-			i += wildcmp(s1 + 1, s2 + 1);
-		i += check_path(s1 + 1, s2);
-		return (!!i);
-	}
-	return (0);
-}
 
-/**
- *check_path - checks recursively for all the paths when the
- * characters are equal
- * @s1: first string
- * @s2: second string
- *
- * Return: return value of wildcmp() or of itself
- */
-int check_path(char *s1, char *s2)
-{
-	if (*s1 == '\0')
-		return (0);
-	if (*s1 == *s2)
-		return (wildcmp(s1, s2));
-	return  (check_path(s1 + 1, s2));
-
-}
-
-/**
- * *move_char - moves the current char past the *
- * @s2: string to iterate over
- *
- * Return: the address of the character after the *
- */
-char *move_char(char *s2)
-{
-	if (*s2 == '*')
-		return (move_char(s2 + 1));
-	else
-		return (s2);
+	return (wildcmp(++s1, ++s2));
 }
